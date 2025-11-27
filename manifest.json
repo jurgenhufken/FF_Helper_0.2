@@ -1,0 +1,47 @@
+{
+  "manifest_version": 2,
+  "name": "YouTube HQ Screen Capture",
+  "version": "0.4",
+  "description": "Maakt hoge kwaliteit screencaptures van de YouTube videospeler, met burst mode, canvas-cropping en instelbare settings.",
+  "permissions": ["tabs", "activeTab", "downloads", "storage"],
+  "browser_action": {
+    "default_title": "YouTube Capture",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    },
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": false
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.youtube.com/*"],
+      "js": ["content-script.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "commands": {
+    "capture_youtube_single": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Y"
+      },
+      "description": "Maak één screencapture van de huidige YouTube-video"
+    },
+    "capture_youtube_burst": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+U"
+      },
+      "description": "Burst capture van de YouTube-video"
+    }
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "youtube-hq-capture@example.local"
+    }
+  }
+}
