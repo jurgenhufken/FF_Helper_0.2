@@ -1,24 +1,25 @@
 # YouTube HQ Screen Capture (FF_HELPER)
 
-Browserextensie voor Firefox/Chromium om **hoge kwaliteit screenshots** van YouTube-video's te maken. De extensie crop’t automatisch alleen het videobeeld (zonder bovenbalk en afgeronde hoeken), en slaat de PNG-bestanden direct op in je downloadmap.
+Browserextensie voor Firefox/Chromium om **hoge kwaliteit screenshots** van YouTube-video's te maken. De extensie haalt een frame direct uit het `<video>`-element (zonder YouTube-UI) waar mogelijk, met een fallback naar een slimme crop van het zichtbare tabblad, en slaat de JPG-bestanden direct op in je downloadmap.
 
 ## Features
 
-- **Single capture**
-  - Eén screenshot van de huidige video player.
-  - Via popup-knop, floating knop op de pagina of sneltoets.
+- **Single capture (JPG)**
+  - Eén screenshot van de huidige video player als JPG.
+  - Via popup-knop, floating toolbar op de pagina of sneltoets.
 - **Burst mode**
   - Meerdere frames achter elkaar met instelbaar interval.
-- **Slimme crop**
-  - Cropt het zichtbare tabblad tot alleen het videogebied.
-  - Verwijdert YouTube-bovenbalk en afgeronde hoeken.
-- **Floating capture-knop**
-  - Kleine `Capture`-knop rechtsboven op elke `watch`-pagina.
+- **Directe videoframe + slimme crop**
+  - Probeert eerst het grootste `<video>`-element direct naar een canvas te tekenen (intrinsieke capture, zonder UI).
+  - Valt terug op een crop van het zichtbare tabblad tot alleen het videogebied (zonder YouTube-bovenbalk en afgeronde hoeken) als directe capture niet lukt.
+- **Floating capture-toolbar**
+  - Kleine zwevende toolbar rechtsboven op elke `watch`-pagina.
+  - Knoppen: `JPG` (single frame) en `Burst` (meerdere frames).
   - Werkt ook als de popup niet open is.
 - **Bestandsnamen met context**
   - Formaat:
-    - `host__kanaal__titel_YYYYMMDD_HHMMSS_fNNN.png`
-    - Voorbeeld: `www_youtube_com__MyChannel__My_Video_20251127_231234_f001.png`
+    - `host__kanaal__titel_YYYYMMDD_HHMMSS_fNNN.jpg`
+    - Voorbeeld: `www_youtube_com__MyChannel__My_Video_20251127_231234_f001.jpg`
 - **Automatisch naar Downloads**
   - Gebruikt de standaard downloadlocatie van de browser.
 - **Instelbare instellingen via popup**
@@ -45,19 +46,20 @@ Browserextensie voor Firefox/Chromium om **hoge kwaliteit screenshots** van YouT
 
 ## Gebruik
 
-### Floating knop
+### Floating toolbar (aanbevolen)
 
 - Open een YouTube-video: `https://www.youtube.com/watch?v=...`.
-- Wacht een moment tot de **Capture**-knop rechtsboven in beeld verschijnt.
-- Klik op **Capture**.
-- Er wordt direct een PNG in je downloadmap geplaatst.
+- Wacht een moment tot de kleine zwevende toolbar rechtsboven in beeld verschijnt.
+- Knoppen:
+  - **JPG** → één JPG-screenshot (directe videoframe waar mogelijk).
+  - **Burst** → meerdere JPG-screenshots achter elkaar (aantal/interval volgens settings).
 
 ### Popup
 
 - Klik op het extensie-icoon om de popup te openen.
 - Knoppen:
-  - **Single Capture** → één screenshot.
-  - **Burst Capture** → meerdere screenshots volgens de ingestelde waarden.
+  - **Single JPG** → één JPG-screenshot.
+  - **Burst JPG (burst)** → meerdere JPG-screenshots volgens de ingestelde waarden.
 - Je kunt hier ook de instellingen aanpassen en opslaan.
 
 ### Sneltoetsen (indien geconfigureerd door de browser)
@@ -72,7 +74,7 @@ Browserextensie voor Firefox/Chromium om **hoge kwaliteit screenshots** van YouT
 De bestandsnaam wordt opgebouwd als:
 
 ```text
-<host>__<kanaal>__<titel>_<YYYYMMDD>_<HHMMSS>_fNNN.png
+<host>__<kanaal>__<titel>_<YYYYMMDD>_<HHMMSS>_fNNN.jpg
 ```
 
 - **host**: bijvoorbeeld `www_youtube_com`.
@@ -83,7 +85,7 @@ De bestandsnaam wordt opgebouwd als:
 Voorbeeld:
 
 ```text
-www_youtube_com__Veritasium__This_Is_Why_Flying_Is_Safe_20251127_231234_f003.png
+www_youtube_com__Veritasium__This_Is_Why_Flying_Is_Safe_20251127_231234_f003.jpg
 ```
 
 ## Belangrijkste bestanden
@@ -91,15 +93,15 @@ www_youtube_com__Veritasium__This_Is_Why_Flying_Is_Safe_20251127_231234_f003.png
 - `manifest.json` – extensieconfiguratie (permissions, background, popup, content script, commands).
 - `background.js` – hoofdlogica:
   - Vraagt videoinfo op bij het content-script.
-  - Maakt een screenshot van de zichtbare tab.
-  - Cropt met een canvas tot het videogebied.
+  - Probeert eerst een directe capture van het `<video>`-element via canvas (zonder UI).
+  - Cropt anders het screenshot van de zichtbare tab tot het videogebied.
   - Converteert de data-URL naar een blob-URL en start `downloads.download`.
   - Handelt popup-berichten, floating-berichten en sneltoetsen af.
 - `content-script.js` – draait op YouTube:
   - Bepaalt het videorechthoek (met marge en zonder bovenbalk).
   - Leest titel + kanaalnaam + host/URL uit.
   - Stuurt deze info terug naar de background.
-  - Plaatst de floating `Capture`-knop.
+  - Plaatst de zwevende `JPG`/`Burst`-toolbar.
 - `popup.html` / `popup.js` – UI en opslag van instellingen.
 
 ## Development
@@ -120,6 +122,12 @@ www_youtube_com__Veritasium__This_Is_Why_Flying_Is_Safe_20251127_231234_f003.png
   - Floating `Capture`-knop op YouTube-watchpagina's.
   - Bestandsnaam met host + kanaal + titel + volgnummer.
   - Automatisch downloaden naar de standaard downloadmap.
+  
+- **v0.2.0** – JPG-only + directe videoframe-capture
+  - Alle captures als JPG (single, burst, floating toolbar, popup, sneltoetsen).
+  - Directe canvas-capture van het `<video>`-element waar mogelijk, met fallback naar crop van de zichtbare tab.
+  - Zwevende `JPG`/`Burst`-toolbar op YouTube-watchpagina's.
+  - Popup-knoppen hernoemd naar `Single JPG` en `Burst JPG (burst)`.
 
 ## Toekomstige ideeën
 
