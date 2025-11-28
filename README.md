@@ -1,4 +1,17 @@
-# YouTube HQ Screen Capture (FF_HELPER)
+# FF Helper 0.2 – YouTube HQ Screen Capture + Region Recorder
+
+Deze repository bevat twee samenwerkende onderdelen:
+
+- **YouTube HQ Screen Capture extensie** (root van deze repo)
+  - Maakt hoge kwaliteit screenshots van YouTube-video's (single + burst).
+- **YT Region Recorder systeem** (`yt_recorder_system/`)
+  - Losse Python FastAPI-server + bijbehorende extensie om de videoregio naar ffmpeg te sturen en als clip op te nemen.
+
+De screenshot-extensie kun je los gebruiken. Als je daarnaast de recorder-server draait + de recorder-extensie laadt, kun je vanuit de pagina ook **REC / STOP** doen en echte videoclips opnemen.
+
+---
+
+# YouTube HQ Screen Capture
 
 Browserextensie voor Firefox/Chromium om **hoge kwaliteit screenshots** van YouTube-video's te maken. De extensie haalt een frame direct uit het `<video>`-element (zonder YouTube-UI) waar mogelijk, met een fallback naar een slimme crop van het zichtbare tabblad, en slaat de JPG-bestanden direct op in je downloadmap.
 
@@ -28,21 +41,21 @@ Browserextensie voor Firefox/Chromium om **hoge kwaliteit screenshots** van YouT
   - Of burst gebruikt moet worden voor toolbar-acties.
   - Of de videotitel in de bestandsnaam gebruikt wordt.
 
-## Installatie (Firefox)
+## Installatie extensie (Firefox)
 
 1. Download of clone deze repository.
 2. Ga in Firefox naar `about:debugging` → **This Firefox**.
 3. Klik op **Load Temporary Add-on… / Tijdelijke add-on laden…**.
-4. Kies `manifest.json` in de map `youtube-hq-capture`.
+4. Kies `manifest.json` in de rootmap van deze repo.
 5. De extensie verschijnt nu in de toolbar.
 
 > Let op: tijdelijke add-ons verdwijnen na het herstarten van Firefox. Voor permanent gebruik kun je dit project als eigen add-on packagen/ondertekenen via AMO.
 
-## Installatie (Chromium/Chrome/Edge)
+## Installatie extensie (Chromium/Chrome/Edge)
 
 1. Open `chrome://extensions` (of `edge://extensions`).
 2. Zet **Developer mode / Ontwikkelaarsmodus** aan.
-3. Kies **Load unpacked** en selecteer de map `youtube-hq-capture`.
+3. Kies **Load unpacked** en selecteer de rootmap van deze repo.
 
 ## Gebruik
 
@@ -106,7 +119,7 @@ www_youtube_com__Veritasium__This_Is_Why_Flying_Is_Safe_20251127_231234_f003.jpg
 
 ## Development
 
-- Pas bestanden aan in de `youtube-hq-capture`-map.
+- Pas bestanden aan in de rootmap van deze extensie.
 - Na elke wijziging:
   - In Firefox: `about:debugging` → **Reload** bij de extensie.
   - In Chromium/Chrome/Edge: `chrome://extensions` → **Reload**.
@@ -114,7 +127,7 @@ www_youtube_com__Veritasium__This_Is_Why_Flying_Is_Safe_20251127_231234_f003.jpg
   - Firefox: `about:debugging` → Inspect bij de extensie.
   - Chromium: `chrome://extensions` → klik op *service worker/background page*.
 
-## Changelog
+## Changelog extensie
 
 - **v0.1.0** – eerste publieke versie
   - Single & burst capture.
@@ -129,7 +142,7 @@ www_youtube_com__Veritasium__This_Is_Why_Flying_Is_Safe_20251127_231234_f003.jpg
   - Zwevende `JPG`/`Burst`-toolbar op YouTube-watchpagina's.
   - Popup-knoppen hernoemd naar `Single JPG` en `Burst JPG (burst)`.
 
-## Toekomstige ideeën
+## Toekomstige ideeën (extensie)
 
 - Mogelijkheid om meer sites dan alleen YouTube te ondersteunen.
 - Extra opties voor het bestandsnaam-schema (bijv. resolutie, eigen prefix).
@@ -176,6 +189,32 @@ De extensie gebruikt bewust alleen officiële WebExtension-API's en kan daarom *
 Deze methode geeft je **exacte videoframes zonder overlays** (geen YouTube-UI, geen browserchrome), maar vereist wel dat je de video eerst lokaal downloadt.
 
 > Let op: respecteer altijd de gebruiksvoorwaarden en auteursrechten van de content die je downloadt.
+
+---
+
+# YT Region Recorder systeem
+
+In de map `yt_recorder_system/yt_recorder_system/` staat een losstaand systeem om de YouTube-videoregio (of andere sites) naar een **lokale recorder-server** te sturen. De server gebruikt ffmpeg om clips op te nemen en biedt een klein dashboard om opnames terug te kijken.
+
+Belangrijkste onderdelen:
+
+- `yt_recorder_system/yt_recorder_system/server/recorder_server.py`  
+  FastAPI-server die via `/record/start` en `/record/stop` ffmpeg-opnames aanstuurt.
+- `yt_recorder_system/yt_recorder_system/extension/`  
+  Firefox-extensie die de videoregio bepaalt en REC / STOP-knoppen aanbiedt.
+
+Een beknopte handleiding (inclusief installatie van dependencies en ffmpeg) staat in:
+
+- `yt_recorder_system/yt_recorder_system/README.md`
+
+In het kort:
+
+1. Zorg dat Python en `ffmpeg` geïnstalleerd zijn.
+2. Installeer de dependencies en start de server volgens de README in `yt_recorder_system/yt_recorder_system/`.
+3. Laad de recorder-extensie (map `extension/`) als tijdelijke add-on in Firefox.
+4. Open een YouTube-video, zorg dat de server draait en gebruik de REC / STOP-knop.
+
+---
 
 ## Licentie
 
