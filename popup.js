@@ -66,17 +66,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       type: "SAVE_SETTINGS",
       settings: newSettings
     });
-
-    window.close();
   });
 
   singleCaptureBtn.addEventListener("click", () => {
-    browserApi.runtime.sendMessage({ type: "POPUP_CAPTURE_SINGLE" });
-    window.close();
+    browserApi.runtime.sendMessage({ type: "POPUP_CAPTURE_SINGLE_JPG" });
   });
 
   burstCaptureBtn.addEventListener("click", () => {
     browserApi.runtime.sendMessage({ type: "POPUP_CAPTURE_BURST" });
-    window.close();
   });
+
 });

@@ -86,11 +86,11 @@ function buildFilenameFromTitle(title, index, host, channel) {
 
   const idxPart = index != null ? `_f${String(index).padStart(3, "0")}` : "";
 
-  return `${baseHost}__${baseChannel}__${baseTitle}_${y}${m}${d}_${h}${min}${s}${idxPart}.png`;
+  return `${baseHost}__${baseChannel}__${baseTitle}_${y}${m}${d}_${h}${min}${s}${idxPart}.jpg`;
 }
 
 // ---- canvas-cropping ----
-function cropDataUrlWithCanvas(dataUrl, rect, dpr, callback) {
+function cropDataUrlWithCanvas(dataUrl, rect, dpr, callback, outputMime, outputQuality) {
   const img = new Image();
   img.onload = () => {
     const scale = dpr || 1;
@@ -100,6 +100,8 @@ function cropDataUrlWithCanvas(dataUrl, rect, dpr, callback) {
     const sw = rect.width * scale;
     const sh = rect.height * scale;
 
+    console.log("[YTHQ] cropDataUrlWithCanvas", { scale, sx, sy, sw, sh });
+
     const canvas = document.createElement("canvas");
     canvas.width = sw;
     canvas.height = sh;
@@ -107,7 +109,18 @@ function cropDataUrlWithCanvas(dataUrl, rect, dpr, callback) {
     const ctx = canvas.getContext("2d");
     ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
 
-    const croppedDataUrl = canvas.toDataURL("image/png");
+    const mime = outputMime || "image/png";
+    let croppedDataUrl;
+    try {
+      if (mime === "image/jpeg" && typeof outputQuality === "number") {
+        croppedDataUrl = canvas.toDataURL(mime, outputQuality);
+      } else {
+        croppedDataUrl = canvas.toDataURL(mime);
+      }
+    } catch (e) {
+      console.error("[YTHQ] canvas.toDataURL fout:", e);
+      croppedDataUrl = canvas.toDataURL("image/png");
+    }
     callback(croppedDataUrl);
   };
   img.src = dataUrl;
@@ -139,7 +152,7 @@ function dataUrlToBlobUrl(dataUrl) {
 }
 
 // ---- captures ----
-async function captureSingleFrame(tab, index, baseTitle, settings) {
+async function captureSingleFrame(tab, index, baseTitle, settings, outputFormat) {
   if (!tab || !tab.id) return;
   if (!/youtube\.com/.test(tab.url || "")) return;
 
@@ -160,21 +173,55 @@ async function captureSingleFrame(tab, index, baseTitle, settings) {
   const { rect, title, host, channel } = info;
   const dpr = rect.devicePixelRatio || 1;
 
-  const dataUrl = await browserApi.tabs.captureVisibleTab(tab.windowId, {
-    format: "png"
-  });
+  // We gebruiken overal JPEG als outputformaat
+  const format = "jpeg";
+
+  let usedDirectFrame = false;
+  let frameData = null;
+
+  try {
+    frameData = await browserApi.tabs.sendMessage(tab.id, {
+      type: "CAPTURE_VIDEO_FRAME",
+      format
+    });
+  } catch (e) {
+    console.warn("[YTHQ] CAPTURE_VIDEO_FRAME bericht fout:", e);
+  }
+
+  let dataUrl = null;
+
+  if (frameData && frameData.ok && frameData.dataUrl) {
+    usedDirectFrame = true;
+    dataUrl = frameData.dataUrl;
+    console.log("[YTHQ] gebruik directe videoframe", {
+      width: frameData.width,
+      height: frameData.height
+    });
+  } else {
+    dataUrl = await browserApi.tabs.captureVisibleTab(tab.windowId, {
+      format: "jpeg",
+      quality: 95
+    });
+
+    console.log("[YTHQ] captureVisibleTab dataUrl length", dataUrl && dataUrl.length);
+  }
 
   return new Promise((resolve) => {
-    cropDataUrlWithCanvas(dataUrl, rect, dpr, (cropped) => {
+    const handleDataUrl = (finalDataUrl) => {
       let effectiveTitle = baseTitle || title;
       if (settings && settings.useTitleInFilename === false) {
         effectiveTitle = "capture";
       }
 
       const filename = buildFilenameFromTitle(effectiveTitle, effectiveIndex, host, channel);
-      console.log("[YTHQ] start download", filename);
+      console.log(
+        "[YTHQ] start download",
+        filename,
+        usedDirectFrame ? "(directe video)" : "(schermcapture)"
+      );
 
-      const blobUrl = dataUrlToBlobUrl(cropped);
+      const blobUrl = dataUrlToBlobUrl(finalDataUrl);
+      console.log("[YTHQ] blobUrl created", !!blobUrl);
 
       if (!browserApi.downloads || !browserApi.downloads.download) {
         console.error("[YTHQ] downloads API niet beschikbaar");
@@ -200,7 +247,17 @@ async function captureSingleFrame(tab, index, baseTitle, settings) {
       }
 
       resolve();
-    });
+    };
+
+    if (usedDirectFrame) {
+      handleDataUrl(dataUrl);
+    } else {
+      const mime = format === "jpeg" ? "image/jpeg" : "image/png";
+      const quality = format === "jpeg" ? 0.95 : undefined;
+      cropDataUrlWithCanvas(dataUrl, rect, dpr, (cropped) => {
+        handleDataUrl(cropped);
+      }, mime, quality);
+    }
   });
 }
 
@@ -228,7 +285,7 @@ async function captureBurst(tab, settings) {
   }
 }
 
-async function handleCapture(tab, mode /* 'single' | 'burst' | 'autoToolbar' */) {
+async function handleCapture(tab, mode /* 'single' | 'burst' | 'autoToolbar' */, outputFormat) {
   if (!tab || !tab.id) return;
   if (!/youtube\.com/.test(tab.url || "")) {
     console.log("Geen YouTube-tab, skip.");
@@ -247,7 +304,7 @@ async function handleCapture(tab, mode /* 'single' | 'burst' | 'autoToolbar' */)
   if (effectiveMode === "burst") {
     await captureBurst(tab, settings);
   } else {
-    await captureSingleFrame(tab, null, null, settings);
+    await captureSingleFrame(tab, null, null, settings, outputFormat);
   }
 }
 
@@ -277,10 +334,25 @@ browserApi.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (!tabs || !tabs[0]) return;
       handleCapture(tabs[0], "single");
     });
+  } else if (message.type === "POPUP_CAPTURE_SINGLE_JPG") {
+    browserApi.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (!tabs || !tabs[0]) return;
+      handleCapture(tabs[0], "single", "jpeg");
+    });
   } else if (message.type === "FLOATING_CAPTURE_SINGLE") {
     browserApi.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (!tabs || !tabs[0]) return;
       handleCapture(tabs[0], "single");
+    });
+  } else if (message.type === "FLOATING_CAPTURE_SINGLE_JPG") {
+    browserApi.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (!tabs || !tabs[0]) return;
+      handleCapture(tabs[0], "single", "jpeg");
+    });
+  } else if (message.type === "FLOATING_CAPTURE_BURST") {
+    browserApi.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (!tabs || !tabs[0]) return;
+      handleCapture(tabs[0], "burst");
     });
   } else if (message.type === "POPUP_CAPTURE_BURST") {
     browserApi.tabs.query({ active: true, currentWindow: true }, (tabs) => {
