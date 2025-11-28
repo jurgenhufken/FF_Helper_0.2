@@ -1,0 +1,5 @@
+yt_recorder_system/yt_recorder_system/.venv/
+yt_recorder_system/yt_recorder_system/__pycache__/
+yt_recorder_system/yt_recorder_system/yt_recorder_server/
+yt_recorder_system/yt_recorder_system/*.mp4
+yt_recorder_system/yt_recorder_system/recordings.db

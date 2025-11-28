@@ -1,0 +1,32 @@
+{
+  "manifest_version": 2,
+  "name": "YouTube Region Recorder Client",
+  "version": "0.1",
+  "description": "Stuurt de YouTube-videoplayer-regio naar de lokale recorder server voor instant ffmpeg-opnames.",
+  "permissions": [
+    "tabs",
+    "activeTab",
+    "storage",
+    "http://127.0.0.1/*"
+  ],
+  "browser_action": {
+    "default_title": "YT Recorder",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": false
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.youtube.com/*"],
+      "js": ["content-script.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "youtube-region-recorder-client@example.local"
+    }
+  }
+}
